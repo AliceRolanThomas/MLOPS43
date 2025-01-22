@@ -15,30 +15,39 @@ CATEGORIES = [
     'talk.politics.misc'
 ]
 
+
 def prepare_dataset():
     # Fetch data
-    dataset = fetch_20newsgroups(subset='all', categories=CATEGORIES, remove=('headers', 'footers', 'quotes'))
-    
+    dataset = fetch_20newsgroups(subset='all', 
+                                 categories=CATEGORIES, remove=('headers', 'footers', 'quotes'))
     # Create a DataFrame
     data = pd.DataFrame({'text': dataset.data, 'category': dataset.target})
     data['category'] = data['category'].map(lambda x: dataset.target_names[x])
-    
-    # Sample 10 news for training and 1 for testing from each category
-    sampled_data = data.groupby('category').apply(
-        lambda group: pd.concat([group.head(10), group.tail(1)])
-    ).reset_index(drop=True)
+
+    # Sample 10 entries per category
+    sampled_data = data.groupby('category').head(10).reset_index(drop=True)
     return sampled_data
+
+
+def split_data(data):
+    # Split each category into 80% train and 20% test
+    train_data = pd.DataFrame()
+    test_data = pd.DataFrame()
+
+    for category, group in data.groupby('category'):
+        train, test = train_test_split(group, test_size=0.2, random_state=42)
+        train_data = pd.concat([train_data, train])
+        test_data = pd.concat([test_data, test])
+
+    return train_data, test_data
+
 
 def train_model():
     # Prepare dataset
     data = prepare_dataset()
-    X = data['text']
-    y = data['category']
+    train_data, test_data = split_data(data)
 
-    # Split data into training (10 per category) and testing (1 per category)
-    train_data = data.groupby('category').head(10)
-    test_data = data.groupby('category').tail(1)
-
+    # Separate features and labels
     X_train, y_train = train_data['text'], train_data['category']
     X_test, y_test = test_data['text'], test_data['category']
 
@@ -58,6 +67,7 @@ def train_model():
     # Save model and vectorizer
     joblib.dump(model, 'model.pkl')
     joblib.dump(vectorizer, 'vectorizer.pkl')
+
 
 if __name__ == '__main__':
     train_model()
