@@ -18,13 +18,11 @@ CATEGORIES = [
 
 def prepare_dataset():
     # Fetch data
-    dataset = fetch_20newsgroups(subset='all', categories=CATEGORIES, 
+    dataset = fetch_20newsgroups(subset='all', categories=CATEGORIES,
                                  remove=('headers', 'footers', 'quotes'))
-    
     # Create a DataFrame
     data = pd.DataFrame({'text': dataset.data, 'category': dataset.target})
     data['category'] = data['category'].map(lambda x: dataset.target_names[x])
-    
     # Sample 10 entries per category
     sampled_data = data.groupby('category').head(10).reset_index(drop=True)
     return sampled_data
